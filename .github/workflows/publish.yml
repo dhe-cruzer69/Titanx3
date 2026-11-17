@@ -8,14 +8,14 @@ on:
 
 jobs:
   publish-mcp-canary-npm:
-    if: github.event.schedule || github.event_name == 'workflow_dispatch'
+    if: (github.event.schedule || github.event_name == 'workflow_dispatch') && github.repository == 'microsoft/playwright-mcp'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write  # Required for OIDC npm publishing
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444  # v5
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org/
@@ -44,14 +44,14 @@ jobs:
         run: npm publish --tag next
 
   publish-mcp-release-npm:
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' && github.repository == 'microsoft/playwright-mcp'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write  # Required for OIDC npm publishing
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444  # v5
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org/
@@ -68,6 +68,7 @@ jobs:
     if: |
       always() &&
       (github.event_name == 'release' || github.event_name == 'workflow_dispatch') &&
+      github.repository == 'microsoft/playwright-mcp' &&
       needs.publish-mcp-release-npm.result != 'failure' &&
       needs.publish-mcp-release-npm.result != 'cancelled'
     needs: publish-mcp-release-npm
@@ -76,7 +77,7 @@ jobs:
       contents: read
       id-token: write  # Required for GitHub OIDC auth to the MCP Registry
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
 
       - name: Validate server.json version matches package.json
         run: |
@@ -109,20 +110,20 @@ jobs:
         run: ./mcp-publisher publish
 
   publish-mcp-release-docker:
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' && github.repository == 'microsoft/playwright-mcp'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write # Needed for OIDC login to Azure
     environment: allow-publishing-docker-to-acr
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
       - name: Set up QEMU # Needed for multi-platform builds (e.g., arm64 on amd64 runner)
-        uses: docker/setup-qemu-action@v4
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1  # v4
       - name: Set up Docker Buildx # Needed for multi-platform builds
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4
       - name: Azure Login via OIDC
-        uses: azure/login@v3
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906  # v3
         with:
           client-id: ${{ secrets.AZURE_DOCKER_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_DOCKER_TENANT_ID }}
@@ -131,7 +132,7 @@ jobs:
         run: az acr login --name playwright
       - name: Build and push Docker image
         id: build-push
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7
         with:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
@@ -139,7 +140,7 @@ jobs:
           tags: |
             playwright.azurecr.io/public/playwright/mcp:${{ github.event.release.tag_name }}
             playwright.azurecr.io/public/playwright/mcp:latest
-      - uses: oras-project/setup-oras@v2
+      - uses: oras-project/setup-oras@5e2f2482b30b0cb3e14e67f89a80c88c659a7c63  # v2
       - name: Set oras tags
         run: |
           attach_eol_manifest() {
